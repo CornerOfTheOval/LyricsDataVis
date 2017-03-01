@@ -12,7 +12,6 @@ Use conditional panels to display certain widgets or plots
 - genre
 - rating/popularity 
 - word + artist ? (use conditional panel)
-- 
 
 
 Potential UI design:
