@@ -16,6 +16,7 @@ Use conditional panels to display certain widgets or plots
 
 
 Potential UI design:
+```
   tab layout{
     tab panel{#for each function
       sidebar layout{
@@ -28,3 +29,4 @@ Potential UI design:
       }
     }
   }
+```
