@@ -1,7 +1,8 @@
 library(shiny)
 library(httr)
 library(jsonlite)
-#source('apikey.R')
+library(dplyr)
+source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
                           sidebarLayout(
@@ -28,8 +29,8 @@ ui <- navbarPage("Navbar",
                  )
 )
 
-api.key <- "89b7ffa4912ce0420e1611ed804a106b"
-library(dplyr)
+#apikey <- "89b7ffa4912ce0420e1611ed804a106b"
+api.key
 server <- function(input, output) {
   artist.data <- reactive({
     q_artist = "Beyonce" 
@@ -44,15 +45,13 @@ server <- function(input, output) {
     parsed.data <- flatten(parsed.data)
     data <- parsed.data$message$body$artist_list$artist
     names(parsed.data$message$body$artist_list$artist)
-    try <- flatten(parsed.data$message$body$artist_list)
-    View(try)
     names(data)
     View(data)
+    
+    # only gets first row aka just the artist name
     data.new <- data %>% 
       select(artist_id, artist_name) %>% 
-    #View(data.new)
       filter(row_number() == 1) # just saves exact name, does not include collabs, "feat"
-    View(data.new)
     artist_id <- data.new$artist_id #this saves arctic monkeys id
     artist_id
     # new get function = new uri
