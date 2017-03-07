@@ -1,7 +1,7 @@
 library(shiny)
 library(httr)
 library(jsonlite)
-#source('apikey.R')
+source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
                           sidebarLayout(
@@ -28,7 +28,7 @@ ui <- navbarPage("Navbar",
                  )
 )
 
-api.key <- "89b7ffa4912ce0420e1611ed804a106b"
+#api.key <- "89b7ffa4912ce0420e1611ed804a106b"
 library(dplyr)
 server <- function(input, output) {
   artist.data <- reactive({
