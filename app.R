@@ -62,14 +62,35 @@ server <- function(input, output) {
     all.songs <- data.frame()
     all.songs
     # for loop, for however many albums
-    for(val in album.id) {
+    length(album.id)
+    #test album ids
+    listy <- c(10570732, 23648084)
+    songs <- c()
+    for(val in album.id) { #change listy to album.id
       # for each album, save list of the tracks as a list (there will be diff number of songs, so important ot save as list )
-    }
+      
+    
     # Get tracks for albums
     tracks.uri <- paste0(base.uri, "album.tracks.get")
-    query.params.tracks <- list(album_id=album.id, apikey = api.key)
+    #query.params.tracks <- list(album_id=val, apikey = api.key)
+    query.params.tracks <- list(album_id=val, apikey = api.key)
     track.response <- GET(tracks.uri, query = query.params.tracks)
+    track.body <- content(track.response, "text")
+    track.parsed <- fromJSON(track.body)
+    names(track.parsed$message$body$track_list$track)
+    track.ready <- track.parsed$message$body$track_list$track
+    #get lyrics_id
+    track.stuff <- track.ready %>% 
+      select(lyrics_id)
+    songs <- append(songs, track.stuff)
+    }
+    print(songs)
     
+    str(songs$lyrics_id)
+    unique(songs$lyrics_id) == length(songs$lyrics_id)
+    
+    #can get lyrics.id, then use track.lyric API request
+    # AFTER GETTING ALL SONGS, do unique on song id!!!
     
   })
   output$artist.test <- renderText({
