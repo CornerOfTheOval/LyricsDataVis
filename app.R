@@ -32,29 +32,49 @@ api.key <- "89b7ffa4912ce0420e1611ed804a106b"
 library(dplyr)
 server <- function(input, output) {
   artist.data <- reactive({
-    q_artist = "Arctic Monkeys"
+    q_artist = "Beyonce" 
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" # at top of ereactive use input$tab.type, ifstatement, then choose enpoint from API based on that
-    query.params <- list(q_artist="Arctic Monkeys", apikey = api.key, page_size=100) 
+    query.params <- list(q_artist="Beyonce", apikey = api.key, page_size=100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     response
     body <- content(response, "text")
     parsed.data <- fromJSON(body)
+    parsed.data <- flatten(parsed.data)
     data <- parsed.data$message$body$artist_list$artist
+    names(parsed.data$message$body$artist_list$artist)
+    try <- flatten(parsed.data$message$body$artist_list)
+    View(try)
     names(data)
+    View(data)
     data.new <- data %>% 
       select(artist_id, artist_name) %>% 
     #View(data.new)
-      filter(artist_name == q_artist)
+      filter(row_number() == 1) # just saves exact name, does not include collabs, "feat"
+    View(data.new)
     artist_id <- data.new$artist_id #this saves arctic monkeys id
-    
+    artist_id
+    # new get function = new uri
     albums.uri <- paste0(base.uri, "artist.albums.get")
-    query.params.albums <- list(artist_id=artist_id, apikey = api.key, page_size=100)
+    
+    # uses saved artist id from first GET response
+    query.params.albums <- list(artist_id=artist_id, apikey = api.key, page_size=200) # max is 100, how do we get all pages
     abum.response <- GET(albums.uri, query = query.params.albums)
     album.body <- content(abum.response, "text")
     album.data <- fromJSON(album.body)
     album.data <- album.data$message$body$album_list$album
+    View(album.data)
+    
+    # checks for duplicated album names
+    duplicated(album.data$album_name)
+    
+    album.data$album_name[1] == album.data$album_name[2]
+    equalsIgnoreCase(album.data$album_name[1], album.data$album_name[2])
+    # gets rows that are duplicated
+    #duplicated equals.ignore.case
+    # successfully gets unique albums!!!!
+    album.data <- album.data[!duplicated(album.data$album_name),]
     View(album.data)
     album.id <- album.data$album_id
     
@@ -85,12 +105,21 @@ server <- function(input, output) {
     songs <- append(songs, track.stuff)
     }
     print(songs)
+    songs <- unlist(songs)
+    length(songs)
     
+    #all unique songs
+    good.songs <- unique(songs)
+    songs
+    lyric.ids <- good.songs[1:length(good.songs)]
+    
+    # creates data frame with all lyric ids
+    lyric.df <- data.frame(lyric.ids)
+    View(lyric.df)
     str(songs$lyrics_id)
     unique(songs$lyrics_id) == length(songs$lyrics_id)
     
     #can get lyrics.id, then use track.lyric API request
-    # AFTER GETTING ALL SONGS, do unique on song id!!!
     
   })
   output$artist.test <- renderText({
