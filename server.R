@@ -8,49 +8,55 @@ server <- function(input, output) {
     #q_artist = "Beyonce" 
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" # at top of ereactive use input$tab.type, ifstatement, then choose enpoint from API based on that
-    query.params <- list(q_artist="Beyonce", apikey = api.key, page_size=100) 
+    query.params <- list(q_artist="beyonce", apikey = api.key, page_size=100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
-    response
     body <- content(response, "text")
     parsed.data <- fromJSON(body)
-    parsed.data <- flatten(parsed.data)
-    data <- parsed.data$message$body$artist_list$artist
-    names(parsed.data$message$body$artist_list$artist)
-    try <- flatten(parsed.data$message$body$artist_list)
-    View(try)
-    names(data)
-    View(data)
-    data.new <- data %>% 
-      select(artist_id, artist_name) %>% 
-      #View(data.new)
-      filter(row_number() == 1) # just saves exact name, does not include collabs, "feat"
-    View(data.new)
-    artist_id <- data.new$artist_id #this saves arctic monkeys id
-    artist_id
+    
+    # Un-nests the lists (similar to flatten) to get data frame of interest
+    artist.search <- parsed.data$message$body$artist_list$artist
+    View(artist.search)
+    View(flatten(parsed.data$message$body$artist_list))
+    names(artist.search)
+    View(artist.search)
+    artist.ids <- artist.search %>% 
+      select(artist_id)
+artist.ids
+    #filter(row_number() == 1) # just saves exact name, does not include collabs, "feat"
+    # instead of filtering, save df as is (just ids) as vector
+    # then, as a for loop, go through and get albums for every single artist listed
+    # then, append those album ids into a vector
+    # use albums ids to get track
+    artist.ids # all artist ids involving the artist, including collabs/feat.
+    
+    listy.try <- c(18927, 24456502)
+    album.list <- c()
+    for(id in artist.ids) {
+      
     # new get function = new uri
     albums.uri <- paste0(base.uri, "artist.albums.get")
     
     # uses saved artist id from first GET response
-    query.params.albums <- list(artist_id=artist_id, apikey = api.key, page_size=200) # max is 100, how do we get all pages
-    abum.response <- GET(albums.uri, query = query.params.albums)
-    album.body <- content(abum.response, "text")
+    # artist id is equal to whatever value is in artist.ids for each iteration
+    query.params.albums <- list(artist_id=id, apikey = api.key) 
+    album.response <- GET(albums.uri, query = query.params.albums)
+    album.body <- content(album.response, "text")
     album.data <- fromJSON(album.body)
     album.data <- album.data$message$body$album_list$album
-    View(album.data)
+    if(!(is.null(album.data))) {
+    # makes all album names same case
+      album.data$album_name <- tolower(album.data$album_name)
+
+    # gets unique albums
+      album.data <- album.data[!duplicated(album.data$album_name),]
     
-    # checks for duplicated album names
-    duplicated(album.data$album_name)
-    
-    album.data$album_name[1] == album.data$album_name[2]
-    equalsIgnoreCase(album.data$album_name[1], album.data$album_name[2])
-    # gets rows that are duplicated
-    #duplicated equals.ignore.case
-    # successfully gets unique albums!!!!
-    album.data <- album.data[!duplicated(album.data$album_name),]
-    View(album.data)
-    album.id <- album.data$album_id
-    
+    # saves all album ids for the artist
+      album.id <- album.data$album_id
+      album.list <- append(album.list, album.id)
+    }
+    }
+    album.list
     # create empty data frame for all songs to be added to
     all.songs <- data.frame()
     all.songs
@@ -59,9 +65,7 @@ server <- function(input, output) {
     #test album ids
     listy <- c(10570732, 23648084)
     songs <- c()
-    for(val in album.id) { #change listy to album.id
-      # for each album, save list of the tracks as a list (there will be diff number of songs, so important ot save as list )
-      
+    for(val in album.list) { 
       
       # Get tracks for albums
       tracks.uri <- paste0(base.uri, "album.tracks.get")
