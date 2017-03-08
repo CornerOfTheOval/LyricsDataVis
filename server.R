@@ -1,8 +1,9 @@
 library(shiny)
 library(httr)
 library(jsonlite)
+install.packages('qdap')
+library(qdap)
 source('apikey.R')
-api.key
 
 server <- function(input, output) {
   artist.data <- reactive({
@@ -88,13 +89,14 @@ server <- function(input, output) {
     # must determine duplicate elements in track_id vector
     duplicated(songs) # TRUE
     
+    
     # Extract only unique track_ids
     songs.unique <- unique(songs)
 
-    
-
-    
-    #can get lyrics.id, then use track.lyric API request
+    # for loop 
+    # for each song, 
+    # empty vector to store most common word in each song, append into at end of for loop
+    # 
     
   })
   output$artist.test <- renderText({
