@@ -3,9 +3,8 @@ ui <- navbarPage("Navbar",
                  tabPanel("Artist",
                           sidebarLayout(
                             sidebarPanel(
-                              textInput("artist", label = "Artist Input", value = "Enter artist"),
-                              textInput("lyric", label = "Lyric Input", value = "Enter lyric here")
-                              
+                              textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
+
                             ),
                             mainPanel(
                               #plotOutput("plot")

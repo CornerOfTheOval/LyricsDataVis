@@ -7,10 +7,9 @@ source('apikey.R')
 
 server <- function(input, output) {
   artist.data <- reactive({
-    q_artist = "Beyonce" # q_artist = input$artist
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" # at top of ereactive use input$tab.type, ifstatement, then choose enpoint from API based on that
-    query.params <- list(q_artist="Beyonce", apikey = api.key, page_size = 100) # actually need page_size
+    query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) # actually need page_size
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     body <- content(response, "text")
