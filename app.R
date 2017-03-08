@@ -1,13 +1,14 @@
 library(shiny)
 library(httr)
 library(jsonlite)
+library(dplyr)
 source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
                           sidebarLayout(
                             sidebarPanel(
-                              textInput("artist", label = "Artist Input", value = "Enter artist"),
-                              textInput("lyric", label = "Lyric Input", value = "Enter lyric here")
+                              textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
+                              textInput("lyric", label = "Lyric Input", placeholder = "Enter lyric here")
                               
                             ),
                             mainPanel(
@@ -25,11 +26,22 @@ ui <- navbarPage("Navbar",
                               "he" 
                             )
                           )
+                 ),
+                 tabPanel("Year",
+                          sidebarLayout(
+                            sidebarPanel(
+                              sliderInput("year.range", "Year Range:", min = 1955, max = 2017, value = c(1955,2017), step = 1)
+                            ),
+                            mainPanel(
+                              verbatimTextOutput("year.range.output")
+                            )
+                          )
                  )
 )
 
-#api.key <- "89b7ffa4912ce0420e1611ed804a106b"
-library(dplyr)
+#=============================================================================================================
+
+
 server <- function(input, output) {
   artist.data <- reactive({
     q_artist = "Beyonce" 
@@ -88,21 +100,21 @@ server <- function(input, output) {
     songs <- c()
     for(val in album.id) { #change listy to album.id
       # for each album, save list of the tracks as a list (there will be diff number of songs, so important ot save as list )
+        
       
-    
-    # Get tracks for albums
-    tracks.uri <- paste0(base.uri, "album.tracks.get")
-    #query.params.tracks <- list(album_id=val, apikey = api.key)
-    query.params.tracks <- list(album_id=val, apikey = api.key)
-    track.response <- GET(tracks.uri, query = query.params.tracks)
-    track.body <- content(track.response, "text")
-    track.parsed <- fromJSON(track.body)
-    names(track.parsed$message$body$track_list$track)
-    track.ready <- track.parsed$message$body$track_list$track
-    #get lyrics_id
-    track.stuff <- track.ready %>% 
-      select(lyrics_id)
-    songs <- append(songs, track.stuff)
+      # Get tracks for albums
+      tracks.uri <- paste0(base.uri, "album.tracks.get")
+      #query.params.tracks <- list(album_id=val, apikey = api.key)
+      query.params.tracks <- list(album_id=val, apikey = api.key)
+      track.response <- GET(tracks.uri, query = query.params.tracks)
+      track.body <- content(track.response, "text")
+      track.parsed <- fromJSON(track.body)
+      names(track.parsed$message$body$track_list$track)
+      track.ready <- track.parsed$message$body$track_list$track
+      #get lyrics_id
+      track.stuff <- track.ready %>% 
+        select(lyrics_id)
+      songs <- append(songs, track.stuff)
     }
     print(songs)
     songs <- unlist(songs)
@@ -124,6 +136,60 @@ server <- function(input, output) {
   })
   output$artist.test <- renderText({
     input$artist
+  })
+  
+  #====================================BY YEAR=============================================
+  year.data <- reactive({
+    #building params for the query
+    query.params <- list(f_track_release_group_first_release_date_min = 20000101,#year.range.min(),
+                         f_track_release_group_first_release_date_max = 20051231,#year.range.max(),
+                         s_track_rating = "desc",
+                         f_lyrics_language = "en",
+                         apikey = api.key,
+                         page_size=100
+                         )
+    base.uri <- "http://api.musixmatch.com/ws/1.1/"
+    endpoint <- "track.search"
+    uri <- paste0(base.uri, endpoint)
+    response <- GET(uri, query = query.params) #sending the request
+
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    tracks <- parsed.data$message$body$track_list
+    tracks <- tracks$track
+    print(colnames(tracks))
+    tracks <- select(tracks, track_id, track_name, artist_name)
+    #View(tracks)
+    
+    endpoint <- "track.lyrics.get"
+    uri <- paste0(base.uri, endpoint)
+    lyric.bodies <- data.frame()
+    
+    for(t in tracks$track_id){
+      query.params <- list(track_id = t,#tracks$track_id[1],
+                           apikey = api.key
+                          )
+      response <- GET(uri, query = query.params)
+      body <- content(response, "text")
+      parsed.data <- fromJSON(body)
+      new.lyric <- data.frame(t, parsed.data$message$body$lyrics$lyrics_body)
+      lyric.bodies<- rbind(lyric.bodies, new.lyric)
+    }
+    
+  })
+  
+  #text formatting the values from the selector
+  year.range.min <- reactive({
+    paste0(input$year.range[1],"0101")
+  })
+  
+  year.range.max <- reactive({
+    paste0(input$year.range[2],"1231")
+  })
+  
+  output$year.range.output <- renderText({
+    paste(year.range.min(), year.range.max())
+    year.data()
   })
   
 }
