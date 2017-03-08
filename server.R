@@ -4,6 +4,7 @@ library(jsonlite)
 #install.packages('tm')
 library(tm)
 source('apikey.R')
+library(ggplot2)
 
 server <- function(input, output) {
   
@@ -84,7 +85,7 @@ server <- function(input, output) {
     track.lyrics <- c()
     
     # common stop words to exclude from analysis
-    remove <- c("the", "is", "a", "it", "I")
+    remove <- c("the", "is", "a", "it", "I", "to", "of")
     
     for(track in songs.unique) {
       
@@ -104,7 +105,6 @@ server <- function(input, output) {
       
         # splits entire lyric into individual words
         # http://stackoverflow.com/questions/26159754/using-r-to-find-top-ten-words-in-a-text
-        #lyric.split <- strsplit(lyric.body, "[[:space:]]+")[[1]]
         lyric.split <- strsplit(paste(lyric.body, collapse = " "), "[[:space:]]+")[[1]]
       
         # removes common stop words
@@ -118,15 +118,32 @@ server <- function(input, output) {
         track.lyrics <- append(track.lyrics, most.freq)
       }
     }
-    
+    track.lyrics
     # Saves most common lyric per song as a data frame
-    lyric.df <- as.data.frame(as.table(track.lyrics))
+    lyrics.df <- as.data.frame(as.table(track.lyrics)) %>% 
+      arrange(desc(Freq)) %>% 
+      head(10)
+    lyrics.df
+    ggplot(data = lyrics.df, aes(x = Var1, y = Freq)) +
+      geom_point(size = 5) +
+      facet_wrap(~Var1)
+    
+    # counts repeating words together, gather top 10 highest words
+    grouped.lyrics <- as.data.frame(table(lyric.df$Var1)) %>% 
+      arrange(desc(Freq)) %>% 
+      head(10)
+    ggplot(data = grouped.lyrics, mapping = aes(x = Var1)) +
+      geom_bar()
+    
+    View(lyric.df)
     return(lyric.df)
     
   })
   
-  output$artist.test <- renderText({
-    input$artist
+  output$artist.plot <- renderPlot({
+    plot <- ggplot(data = artist.data(), mapping = aes(x = Var1)) +
+      geom_bar()
+    return(plot)
   })
   
 }

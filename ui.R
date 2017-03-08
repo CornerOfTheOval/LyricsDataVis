@@ -3,12 +3,11 @@ ui <- navbarPage("Navbar",
                  tabPanel("Artist",
                           sidebarLayout(
                             sidebarPanel(
-                              textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
+                              textInput("artist", label = "Artist Input", placeholder = "Enter artist")
 
                             ),
                             mainPanel(
-                              #plotOutput("plot")
-                              verbatimTextOutput("artist.test")
+                              plotOutput("artist.plot")
                             )
                           )
                  ),
