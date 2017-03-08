@@ -6,13 +6,14 @@ library(tm)
 source('apikey.R')
 
 server <- function(input, output) {
+  exl.words <- c("the", "is")
   artist.data <- reactive({
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" # at top of ereactive use input$tab.type, ifstatement, then choose enpoint from API based on that
-    query.params <- list(q_artist = "beyonce", apikey = api.key, page_size = 100) # input$artist
+    query.params <- list(q_artist = "Beyonce", apikey = api.key, page_size = 100) # input$artist
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
-    body <- content(response, "text")
+    body <- httr::content(response, "text")
     parsed.data <- fromJSON(body)
     # Un-nests the lists (similar to flatten) to get data frame of interest
     artist.search <- parsed.data$message$body$artist_list$artist
@@ -38,7 +39,7 @@ server <- function(input, output) {
     # artist id is equal to whatever value is in artist.ids for each iteration
     query.params.albums <- list(artist_id = id, apikey = api.key) 
     album.response <- GET(albums.uri, query = query.params.albums)
-    album.body <- content(album.response, "text")
+    album.body <- httr::content(album.response, "text")
     album.data <- fromJSON(album.body)
     album.data <- album.data$message$body$album_list$album
     # if the data frame is not null, then the for loop continues to gather
@@ -57,12 +58,9 @@ server <- function(input, output) {
     }
     album.list
     
-    # create empty vector for all songs to be appended to
-    all.songs <- c()
     # for loop, for however many albums
-    length(album.list)
-    #test album ids
-    #listy <- c(10570732, 23648084)
+    # create empty vector for all songs to be appended to
+    
     songs <- c()
     for(val in album.list) { 
       
@@ -71,7 +69,7 @@ server <- function(input, output) {
       #query.params.tracks <- list(album_id=val, apikey = api.key)
       query.params.tracks <- list(album_id = val, apikey = api.key, page_size = 100)
       track.response <- GET(tracks.uri, query = query.params.tracks)
-      track.body <- content(track.response, "text")
+      track.body <- httr::content(track.response, "text")
       track.parsed <- fromJSON(track.body)
       names(track.parsed$message$body$track_list$track)
       track.ready <- track.parsed$message$body$track_list$track
@@ -83,7 +81,7 @@ server <- function(input, output) {
       track.stuff <- as.vector(track.stuff$track_id)
       songs <- append(songs, track.stuff)
     }
-    songs
+    
     
     # must determine duplicate elements in track_id vector
     duplicated(songs) # TRUE
@@ -98,33 +96,35 @@ server <- function(input, output) {
     track.lyrics <- c()
     for(track in songs.unique) {
       lyric.uri <- paste0(base.uri, "track.lyrics.get")
-      lyric.query.params <- list(apikey = api.key, track_id = 35773882) #track
+      lyric.query.params <- list(apikey = api.key, track_id = track) #track
       response <- GET(lyric.uri, query = lyric.query.params)
-      body <- content(response, "text") 
+      if(response$status_code == 200){
+      body <- httr::content(response, "text") 
       lyric.parsed <- fromJSON(body)
       
       # Filters for lyric body!!!
       lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
-      
+   
       # gets rid of everything after "This Lyrics", won't count stars anyway
       # but if we were to print out lyrics, would want to get rid of stars
-      lyric.body <- gsub('This\\sLyrics.*', "", lyric.body)
-      #gsub("*******\\sThis\\sLyrics\\sis\\sNOT\\sfor\\sCommercial\\suse\\s*******"," ", lyric.body)
+      lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
+      lyric.body
       # splits entire lyric into individual words
       # issue with new lines!!!
       # http://stackoverflow.com/questions/26159754/using-r-to-find-top-ten-words-in-a-text
       lyric.split <- strsplit(lyric.body, "[[:space:]]+")[[1]]
-       #length(stopwords("english"))   
-       #stopwords("english") 
       
       # this just gets the word itself
       #names(which.max(table(lyric.split)))
       # table() --> sorts each word, put in order, goes in ascneding naturally, so get tail ends!
       #this gives word and freq
       most.freq <- tail(sort(table(lyric.split)), 1)
-      #as.data.frame(most.freq) this works, use after
+      as.data.frame(most.freq) #this works, use after
       track.lyrics <- append(track.lyrics, most.freq)
-    }
+      }
+      }
+    track.lyrics
+    View(as.data.frame(as.table(track.lyrics)))
     
   })
   
