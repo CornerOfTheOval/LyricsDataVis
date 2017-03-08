@@ -9,7 +9,7 @@ server <- function(input, output) {
   artist.data <- reactive({
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" # at top of ereactive use input$tab.type, ifstatement, then choose enpoint from API based on that
-    query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) # actually need page_size
+    query.params <- list(q_artist = "beyonce", apikey = api.key, page_size = 100) # input$artist
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     body <- content(response, "text")
@@ -91,7 +91,6 @@ server <- function(input, output) {
     
     # Extract only unique track_ids
     songs.unique <- unique(songs)
-songs.unique
     # for loop 
     # for each song, 
     # empty vector to store most common word in each song, append into at end of for loop
@@ -107,19 +106,28 @@ songs.unique
       # Filters for lyric body!!!
       lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
       
+      # gets rid of everything after "This Lyrics", won't count stars anyway
+      # but if we were to print out lyrics, would want to get rid of stars
+      lyric.body <- gsub('This\\sLyrics.*', "", lyric.body)
+      #gsub("*******\\sThis\\sLyrics\\sis\\sNOT\\sfor\\sCommercial\\suse\\s*******"," ", lyric.body)
       # splits entire lyric into individual words
       # issue with new lines!!!
       # http://stackoverflow.com/questions/26159754/using-r-to-find-top-ten-words-in-a-text
-      try <- strsplit(lyric.body, "[[:space:]]+")[[1]]
+      lyric.split <- strsplit(lyric.body, "[[:space:]]+")[[1]]
        #length(stopwords("english"))   
        #stopwords("english") 
       
+      # this just gets the word itself
+      #names(which.max(table(lyric.split)))
       # table() --> sorts each word, put in order, goes in ascneding naturally, so get tail ends!
-      tail(sort(table(try)), 5)
-
+      #this gives word and freq
+      most.freq <- tail(sort(table(lyric.split)), 1)
+      #as.data.frame(most.freq) this works, use after
+      track.lyrics <- append(track.lyrics, most.freq)
     }
     
   })
+  
   output$artist.test <- renderText({
     input$artist
   })
