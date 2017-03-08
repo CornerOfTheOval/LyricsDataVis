@@ -4,6 +4,8 @@ ui <- navbarPage("Navbar",
                           sidebarLayout(
                             sidebarPanel(
                               textInput("artist", label = "Artist Input", placeholder = "Enter artist")
+                              # add slider input for user to choose how many top songs to include
+                              # limit --> 50?
 
                             ),
                             mainPanel(

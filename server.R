@@ -12,80 +12,52 @@ server <- function(input, output) {
     # Artist Search
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" 
-    query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) 
+    query.params <- list(q_artist = "arctic monkeys", apikey = api.key, page_size = 100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     body <- httr::content(response, "text")
     parsed.data <- fromJSON(body)
     # Flattens parsed data list to get data frame of interest
     artist.search <- parsed.data$message$body$artist_list$artist
-    
     # Selects all artist ids associated with the artist including collabs and feat.
-    artist.ids <- artist.search %>% 
-      select(artist_id)
-    
+    artist.names <- artist.search %>% 
+      select(artist_name)
     # Stores ids as vector to be passed into a loop
-    artist.ids <- as.vector(artist.ids$artist_id)
+    artist.names <- as.vector(artist.names$artist_name)
+    artist.names
     
     # Empty data frame to add all unique album ids for the artist
-    album.list <- c()
-    for(id in artist.ids) {
+    song.list <- c()
+    for(name in artist.names) {
       
       # Gets all albums associated with the artist id
-      albums.uri <- paste0(base.uri, "artist.albums.get")
-      query.params.albums <- list(artist_id = id, apikey = api.key, page_size = 100) 
-      album.response <- GET(albums.uri, query = query.params.albums)
-      album.body <- httr::content(album.response, "text")
-      album.data <- fromJSON(album.body)
-      album.data <- album.data$message$body$album_list$album
-      
-      # For album ids that result in empty data frames,
-      # If the data frame has some value, then the for loop continues 
-       if(!(is.null(album.data))) {
-          # Makes all album names lowercase
-          album.data$album_name <- tolower(album.data$album_name)
+      song.uri <- paste0(base.uri, "track.search")
+      query.params.song <- list(q_artist= name, apikey = api.key, page_size = 100) 
+      song.response <- GET(song.uri, query = query.params.song)
+      song.body <- httr::content(song.response, "text")
+      song.parsed <- fromJSON(song.body)
+      song.data <- song.parsed$message$body$track_list$track 
+      if(!is.null(song.data)){
+      song.data <- song.data %>% 
+        select(track_name, track_id)
+      no.dupes <- song.data[!duplicated(song.data$track_name),]
+      # all songs for all artists
+      song.list <- c(song.list, no.dupes)
 
-          # Filters for unique album names
-          album.data <- album.data[!duplicated(album.data$album_name),]
-    
-          # Saves just unique album ids for the artist
-          album.id <- album.data$album_id
-          
-          # Adds album ids to empty vector
-          album.list <- append(album.list, album.id)
        } 
     }
-    # Empty vector for all songs to be appended to
-    songs <- c()
-    for(val in album.list) { 
-      
-      # Get tracks for albums
-      tracks.uri <- paste0(base.uri, "album.tracks.get")
-      query.params.tracks <- list(album_id = val, apikey = api.key, page_size = 100)
-      track.response <- GET(tracks.uri, query = query.params.tracks)
-      track.body <- httr::content(track.response, "text")
-      track.parsed <- fromJSON(track.body)
-      names(track.parsed$message$body$track_list$track)
-      track.ready <- track.parsed$message$body$track_list$track
-      # Saves the track id number for every album
-      track.stuff <- track.ready %>% 
-        select(track_id)
-      
-      # Stores each track id as a vector 
-      track.stuff <- as.vector(track.stuff$track_id)
-      
-      # Add track ids to empty vector
-      songs <- append(songs, track.stuff)
-    }
     
+    # Empty vector for all songs to be appended to
+
     # Extract only unique track_ids
-    songs.unique <- unique(songs)
+    songs.unique <- unique(song.list$track_id)
  
     # Empty vector for most common word in each song to be appended to
     track.lyrics <- c()
     
     # common stop words to exclude from analysis
-    remove <- c("the", "is", "a", "it", "I", "to", "of")
+    remove <- c("the", "is", "a", "it", "I", "to", "of", "that", "then")
+    songs.unique
     
     for(track in songs.unique) {
       
@@ -109,11 +81,12 @@ server <- function(input, output) {
       
         # removes common stop words
         lyric.split <- lyric.split[!lyric.split %in% remove]
-      
+        
         # table sorts each word into a box with its matching word, sorts in ascending order
         # select the most frequent word 
         most.freq <- tail(sort(table(lyric.split)), 1) #turn 1 into input for each song
         
+        # current --> stores one word in track.lyrics, should i just store entire lyrics
         # Add track ids to empty vector
         track.lyrics <- append(track.lyrics, most.freq)
       }
@@ -123,26 +96,14 @@ server <- function(input, output) {
     lyrics.df <- as.data.frame(as.table(track.lyrics)) %>% 
       arrange(desc(Freq)) %>% 
       head(10)
-    lyrics.df
-    ggplot(data = lyrics.df, aes(x = Var1, y = Freq)) +
-      geom_point(size = 5) +
-      facet_wrap(~Var1)
-    
-    # counts repeating words together, gather top 10 highest words
-    grouped.lyrics <- as.data.frame(table(lyric.df$Var1)) %>% 
-      arrange(desc(Freq)) %>% 
-      head(10)
-    ggplot(data = grouped.lyrics, mapping = aes(x = Var1)) +
-      geom_bar()
-    
-    View(lyric.df)
-    return(lyric.df)
+  
+    return(grouped.lyrics)
     
   })
   
   output$artist.plot <- renderPlot({
-    plot <- ggplot(data = artist.data(), mapping = aes(x = Var1)) +
-      geom_bar()
+    plot <- ggplot(data = artist.data(), aes(x = Var1, y = Freq)) +
+      geom_point(size = 5) 
     return(plot)
   })
   
