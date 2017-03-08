@@ -94,9 +94,30 @@ server <- function(input, output) {
     
     #can get lyrics.id, then use track.lyric API request
     
+    output$artist.test <- renderText({
+      input$artist
+    })
+    
+    #====================================BY YEAR=============================================
+    print(input$year.range)
+    query.params <- reactive({
+      list(f_track_release_group_first_release_date_min="", apikey = api.key)
+      query.params <- 
+        uri <- paste0(base.uri, endpoint)
+      response <- GET(uri, query = query.params)
+      response
+    })
+    
+    year.range.selection <- reactive({
+      cbind(input$year.range[1], input$year.range[2])
+    })
+    
+    output$year.range <- renderText({
+      year.range.selection()
+    })
+    
+    
   })
-  output$artist.test <- renderText({
-    input$artist
-  })
+  
   
 }
