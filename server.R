@@ -1,8 +1,8 @@
 library(shiny)
 library(httr)
 library(jsonlite)
-install.packages('qdap')
-library(qdap)
+#install.packages('tm')
+library(tm)
 source('apikey.R')
 
 server <- function(input, output) {
@@ -92,11 +92,33 @@ server <- function(input, output) {
     
     # Extract only unique track_ids
     songs.unique <- unique(songs)
-
+songs.unique
     # for loop 
     # for each song, 
     # empty vector to store most common word in each song, append into at end of for loop
     # 
+    track.lyrics <- c()
+    for(track in songs.unique) {
+      lyric.uri <- paste0(base.uri, "track.lyrics.get")
+      lyric.query.params <- list(apikey = api.key, track_id = 35773882) #track
+      response <- GET(lyric.uri, query = lyric.query.params)
+      body <- content(response, "text") 
+      lyric.parsed <- fromJSON(body)
+      
+      # Filters for lyric body!!!
+      lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
+      
+      # splits entire lyric into individual words
+      # issue with new lines!!!
+      # http://stackoverflow.com/questions/26159754/using-r-to-find-top-ten-words-in-a-text
+      try <- strsplit(lyric.body, "[[:space:]]+")[[1]]
+       #length(stopwords("english"))   
+       #stopwords("english") 
+      
+      # table() --> sorts each word, put in order, goes in ascneding naturally, so get tail ends!
+      tail(sort(table(try)), 5)
+
+    }
     
   })
   output$artist.test <- renderText({
