@@ -69,13 +69,12 @@ server <- function(input, output) {
     response <- GET(uri, query = query.params)
     body <- content(response, "text")
     parsed.data <- fromJSON(body)
-    parsed.data <- flatten(parsed.data)
     countryData <- parsed.data$message$body$artist_list$artist
     artistRating <- select(countryData, artist_name, artist_rating)
     artistRating <- mutate(artistRating, ranking = 1:100)
     newNames <- c("Artist", "Rating", "Ranking")
     colnames(artistRating) <- newNames
-    View(artistRating)
+    return(artistRating)
   })
   
   # generate a table of the 100 most popular artists for a country
@@ -85,7 +84,7 @@ server <- function(input, output) {
   
   # generate a plot to compare artist popularity (rank) with artist rating 
   output$ratings.plot <- renderPlot({
-    plotRatings <- ggplot(artistRating, aes(x = Ranking, y = Rating)) +
+    plotRatings <- ggplot(year.data(), aes(x = Ranking, y = Rating)) +
       geom_point(span=1) +
       geom_smooth(method = "lm", formula = y ~ splines::bs(x, 3), se = FALSE) +
       ggtitle("Comparison of Artist Popularity and Rating") +
