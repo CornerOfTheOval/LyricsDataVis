@@ -3,6 +3,7 @@ library(httr)
 library(jsonlite)
 library(ggplot2)
 library(plotly)
+library(stringr)
 library(dplyr)
 source('apikey.R')
 
@@ -205,13 +206,23 @@ server <- function(input, output) {
   
   year.data <- reactive({
     #building params for the query
-    query.params <- list(f_track_release_group_first_release_date_min = 20080101,#year.range.min(),
-                         f_track_release_group_first_release_date_max = 20121231,#year.range.max(),
+    query.params <- list(f_track_release_group_first_release_date_min = year.range.min(),
+                         f_track_release_group_first_release_date_max = year.range.max(),
                          s_track_rating = "desc",
                          f_lyrics_language = "en",
                          apikey = api.key,
                          page_size=100
-                         )
+    )
+    base.uri <- "http://api.musixmatch.com/ws/1.1/"
+    endpoint <- "track.search"
+    uri <- paste0(base.uri, endpoint)
+    response <- GET(uri, query = query.params) #sending the request
+    
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    tracks <- parsed.data$message$body$track_list
+    tracks <- tracks$track
+    tracks <- select(tracks, track_id, track_name, artist_name)
     
     #switching the get variables for the track.lyrics requests
     endpoint <- "track.lyrics.get"
@@ -282,22 +293,13 @@ server <- function(input, output) {
   year.range.max <- reactive({
     paste0(input$year.range[2],"1231")
   })
-  
   #unused but if removed seems to break even though theyre not used
   output$year.range.output <- renderText({
     paste(year.range.min(), year.range.max())
   })
   
-  output$year.word.plot <- renderPlot({
-    year.data
-  })
-  
-  output$top.lyric <- renderText({
-    top.word()
-  })
-  
-
-  year.data <- reactive({
+#===========================RATING======================
+  rating.data <- reactive({
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "chart.artists.get" 
     uri <- paste0(base.uri, endpoint)
@@ -321,12 +323,12 @@ server <- function(input, output) {
   
   # generate a table of the 100 most popular artists for a country
   output$table <- renderTable({
-    year.data()
+    rating.data()
   })
   
   # generate a plot to compare artist popularity (rank) with artist rating 
   output$ratings.plot <- renderPlot({
-    plotRatings <- ggplot(year.data(), aes(x = Ranking, y = Rating)) +
+    plotRatings <- ggplot(rating.data(), aes(x = Ranking, y = Rating)) +
       geom_point(span=1) +
       geom_smooth(method = "lm", formula = y ~ splines::bs(x, 3), se = FALSE) +
       ggtitle("Comparison of Artist Popularity and Rating") +
