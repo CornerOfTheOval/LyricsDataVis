@@ -3,6 +3,8 @@ library(httr)
 library(jsonlite)
 library(dplyr)
 library(stringr)
+library(ggplot2)
+library(plotly)
 source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
@@ -29,15 +31,13 @@ ui <- navbarPage("Navbar",
                           )
                  ),
                  tabPanel("Year",
-                          sidebarLayout(
-                            sidebarPanel(
-                              sliderInput("year.range", "Year Range:", min = 1955, max = 2017, value = c(1955,2017), step = 1)
-                            ),
-                            mainPanel(
-                              verbatimTextOutput("year.range.output"),
-                              plotOutput("year.word.plot")
-                              
-                            )
+                          verticalLayout(
+                            sliderInput("year.range", "Year Range:", min = 1955, max = 2017, value = c(1955,2017), step = 1, width = "100%")
+                            ,
+                            hr(),
+                            #verbatimTextOutput("year.range.output"),
+                            #plotOutput("year.word.plot")
+                            plotlyOutput("year.plot")
                           )
                  )
 )
@@ -46,6 +46,9 @@ ui <- navbarPage("Navbar",
 
 
 server <- function(input, output) {
+  #words to be used in filtering the lyrics
+  stop.words <- scan("stop_words2.txt", character(), quote = "")
+  
   artist.data <- reactive({
     q_artist = "Beyonce" 
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
@@ -119,13 +122,11 @@ server <- function(input, output) {
         select(lyrics_id)
       songs <- append(songs, track.stuff)
     }
-    print(songs)
     songs <- unlist(songs)
     length(songs)
     
     #all unique songs
     good.songs <- unique(songs)
-    songs
     lyric.ids <- good.songs[1:length(good.songs)]
     
     # creates data frame with all lyric ids
@@ -144,12 +145,12 @@ server <- function(input, output) {
   #====================================BY YEAR=============================================
   year.data <- reactive({
     #building params for the query
-    query.params <- list(f_track_release_group_first_release_date_min = 20000101,#year.range.min(),
-                         f_track_release_group_first_release_date_max = 20051231,#year.range.max(),
+    query.params <- list(f_track_release_group_first_release_date_min = year.range.min(),
+                         f_track_release_group_first_release_date_max = year.range.max(),
                          s_track_rating = "desc",
                          f_lyrics_language = "en",
                          apikey = api.key,
-                         page_size=100
+                         page_size=2
                          )
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "track.search"
@@ -160,17 +161,17 @@ server <- function(input, output) {
     parsed.data <- fromJSON(body)
     tracks <- parsed.data$message$body$track_list
     tracks <- tracks$track
-    print(colnames(tracks))
     tracks <- select(tracks, track_id, track_name, artist_name)
-    #View(tracks)
     
+    #switching the get variables for the track.lyrics requests
     endpoint <- "track.lyrics.get"
     uri <- paste0(base.uri, endpoint)
-    lyrics.df <- data.frame()
-    stop.words <- scan("stop_words2.txt", character(), quote = "")
     
-    #for(t in tracks$track_id){
-      query.params <- list(track_id = tracks$track_id[3],#t,
+    lyrics.words<- ""
+    
+    #compile all the
+    for(t in tracks$track_id){
+      query.params <- list(track_id = t,
                            apikey = api.key
                           )
       response <- GET(uri, query = query.params)
@@ -182,24 +183,43 @@ server <- function(input, output) {
       #stripping garbage off the lyrics body
       new.lyrics.body <- str_replace_all(new.lyrics.body, "[\n]" , " ")
       new.lyrics.body <- gsub('This\\sLyrics.*', "", new.lyrics.body)
+      new.lyrics.body <- gsub("[,?!.()]", " ", new.lyrics.body)
       new.lyrics.body <- str_to_lower(new.lyrics.body)
       
       new.lyrics.body <- strsplit(new.lyrics.body, " ")
       #its a list and we need it in a vector 
       new.lyrics.body <- unlist(new.lyrics.body)
-      #strip insignificant words
-      new.lyrics.body <- new.lyrics.body[!new.lyrics.body %in% stop.words]
-      #make it into a table to count occurrences
-      new.lyrics.count.table <- table(new.lyrics.body)
-      #trimming off the non-premium message garbage
-      new.lyrics.count.table <- new.lyrics.count.table[-(1:3)]
-      print(new.lyrics.count.table)
-      #track id will be replaced with t when the for loop is activated
-      #new.lyrics <- data.frame(tracks$track_id[1], new.lyrics.body, new.lyrics.count)
-      #lyrics.df<- rbind(lyrics.df, new.lyrics)
-    #}
-    hist(lyric.bodies)
+      #add the new song lyrics to the total lyrics vector
+      lyrics.words <- c(new.lyrics.body, lyrics.words)
+    }
+    #strip insignificant words
+    lyrics.words <- lyrics.words[!lyrics.words %in% stop.words]
+    #make it into a table to count occurrences
+    lyrics.count.df <- table(lyrics.words)
+    lyrics.count.df <- lyrics.count.df[-(1:3)]
+    #make it a data frame to use with a visualization
+    lyrics.count.df <- data.frame(lyrics.count.df)
+    return(lyrics.count.df)
+  })
+  
+  #This is the actual plot built from the scrubbed data above:
+  output$year.plot <- renderPlotly({
+    plot <- ggplot(data = year.data(),
+                   mapping =  aes(x = reorder(lyrics.words,-Freq),
+                                  y = Freq,
+                                  text = paste0("Word: \"",lyrics.words,"\" | ","Frequency:",Freq)))+
+            geom_bar(stat = "identity",
+                     position = position_dodge(width=4),
+                     aes(fill = Freq),
+                     color = "grey90")+
+            theme(axis.text.x = element_blank())+
+            xlab("Lyric")+
+            ylab("Frequency")+
+            ggtitle("Top Words for Top Songs in Selected Year Range")
     
+    plot <- ggplotly(plot,tooltip = c("text")) %>% 
+            config(displayModeBar = F)
+    return(plot)
   })
   
   #text formatting the values from the selector
