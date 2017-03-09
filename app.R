@@ -1,9 +1,33 @@
 library(shiny)
 library(httr)
 library(jsonlite)
-source('apikey.R')
 library(ggplot2)
 library(plotly)
+source('apikey.R')
+#stop.words <- scan("stop_words2.txt", character(), quote = "")
+
+ui <- navbarPage("MusixMatch",
+                 tabPanel("Artist",
+                          sidebarLayout(
+                            sidebarPanel(
+                              textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
+                              sliderInput("num.words", label = "Amount of Words", min = 1, max = 20,
+                                          step = 1, value = 10)
+                              
+                            ),
+                            mainPanel(
+                              p("Use the Artist tab to search for any artist 
+                                in our database. Simply type in an artist name
+                                in the", strong("Artist Input"), "section. Then
+                                choose the amount of words you want using the", strong("Amount of Words"),
+                                "slider input."),
+                              br(),
+                              plotlyOutput("artist.plot")
+                            )
+                            )
+                          )
+                 
+                 )
 
 server <- function(input, output) {
   
@@ -12,7 +36,7 @@ server <- function(input, output) {
     # Artist Search
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" 
-    query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) 
+    query.params <- list(q_artist = "Beyonce", apikey = api.key, page_size = 100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     body <- httr::content(response, "text")
@@ -46,14 +70,15 @@ server <- function(input, output) {
        } 
     }
     
+    
     # Extract only unique track_ids
     songs.unique <- unique(song.list$track_id)
     # Empty vector for most common word in each song to be appended to
     track.lyrics <- c()
-    
     # common stop words to exclude from analysis
     remove <- c("the", "is", "a", "it", "I", "to",
-                "of", "that", "then", "*******", 
+     
+               "of", "that", "then", "*******", 
                 "...", "and", "in", "on", "And", "for", "an", "are", "as", "at", "be", "but")
 
     for(track in songs.unique) {
@@ -62,13 +87,11 @@ server <- function(input, output) {
       lyric.uri <- paste0(base.uri, "track.lyrics.get")
       lyric.query.params <- list(apikey = api.key, track_id = track) #track
       response <- GET(lyric.uri, query = lyric.query.params)
-      
       # Only proceed through for loop if the page exists
       if(response$status_code == 200) {
         body <- httr::content(response, "text") 
         lyric.parsed <- fromJSON(body)
         lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
-        lyric.body
         # gets rid of everything after "This Lyrics" commerical use warning
         lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
         
@@ -93,7 +116,7 @@ server <- function(input, output) {
   })
   # color based on if word is more than 3 letters
   # hover show both values
- #reorder(track.lyrics, -Freq)
+  #reorder(track.lyrics, -Freq)
   output$artist.plot <- renderPlotly({
     plot <- ggplot(data = artist.data(), mapping = aes(x = track.lyrics, y = Freq)) +
       geom_bar(stat = 'identity', fill = 'skyblue2') +
@@ -104,4 +127,5 @@ server <- function(input, output) {
   
 
 }
-shinyServer(server)
+
+shinyApp(ui = ui, server = server)
