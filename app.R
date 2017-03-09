@@ -334,10 +334,7 @@ server <- function(input, output) {
     #plotRatings <- ggplot(plotRatings)  
     return(plotRatings)
   })
-  
-  
- 
- 
+
 }
 
 shinyApp(ui = ui, server = server)
