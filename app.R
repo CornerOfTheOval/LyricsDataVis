@@ -34,10 +34,14 @@ ui <- navbarPage("Navbar",
                           verticalLayout(
                             sliderInput("year.range", "Year Range:", min = 1955, max = 2017, value = c(1955,2017), step = 1, width = "100%")
                             ,
+                            helpText("Use the above slider to select a range of years to see the most common lyrics in that range"),
+                            helpText("Hover over a bar to see the word and its frequency!"),
                             hr(),
-                            #verbatimTextOutput("year.range.output"),
-                            #plotOutput("year.word.plot")
-                            plotlyOutput("year.plot")
+                            
+                            em("Data sampled for the year range will be the top 100 rated english songs for that year range"),
+                            strong("Data may take a few seconds to load"),
+                            plotlyOutput("year.plot"),
+                            br()
                           )
                  )
 )
@@ -143,10 +147,17 @@ server <- function(input, output) {
   })
   
   #====================================BY YEAR=============================================
+  
+  #useless, couldnt get this to work in time
+  top.word <- reactive({
+    word <- year.data %>% arrange(desc(Freq)) %>% top_n(1)
+    print(word)
+  })
+  
   year.data <- reactive({
     #building params for the query
-    query.params <- list(f_track_release_group_first_release_date_min = year.range.min(),
-                         f_track_release_group_first_release_date_max = year.range.max(),
+    query.params <- list(f_track_release_group_first_release_date_min = 20080101,#year.range.min(),
+                         f_track_release_group_first_release_date_max = 20121231,#year.range.max(),
                          s_track_rating = "desc",
                          f_lyrics_language = "en",
                          apikey = api.key,
@@ -183,7 +194,7 @@ server <- function(input, output) {
       #stripping garbage off the lyrics body
       new.lyrics.body <- str_replace_all(new.lyrics.body, "[\n]" , " ")
       new.lyrics.body <- gsub('This\\sLyrics.*', "", new.lyrics.body)
-      new.lyrics.body <- gsub("[,?!.()]", " ", new.lyrics.body)
+      new.lyrics.body <- gsub("[,?!.()*]", " ", new.lyrics.body)
       new.lyrics.body <- str_to_lower(new.lyrics.body)
       
       new.lyrics.body <- strsplit(new.lyrics.body, " ")
@@ -199,6 +210,9 @@ server <- function(input, output) {
     lyrics.count.df <- lyrics.count.df[-(1:3)]
     #make it a data frame to use with a visualization
     lyrics.count.df <- data.frame(lyrics.count.df)
+    #stripping frequencies of 1 in order to better fit more important information
+    lyrics.count.df <- filter(lyrics.count.df, Freq > 10)
+    
     return(lyrics.count.df)
   })
   
@@ -209,9 +223,8 @@ server <- function(input, output) {
                                   y = Freq,
                                   text = paste0("Word: \"",lyrics.words,"\" | ","Frequency:",Freq)))+
             geom_bar(stat = "identity",
-                     position = position_dodge(width=4),
-                     aes(fill = Freq),
-                     color = "grey90")+
+                     position = position_dodge(width=4)#,aes(fill = Freq) COLOR THRAHSED THE TOOLTIP SO IT WAS REMOVED
+                     )+
             theme(axis.text.x = element_blank())+
             xlab("Lyric")+
             ylab("Frequency")+
@@ -231,12 +244,17 @@ server <- function(input, output) {
     paste0(input$year.range[2],"1231")
   })
   
+  #unused but if removed seems to break even though theyre not used
   output$year.range.output <- renderText({
     paste(year.range.min(), year.range.max())
   })
   
   output$year.word.plot <- renderPlot({
     year.data
+  })
+  
+  output$top.lyric <- renderText({
+    top.word()
   })
   
 }
