@@ -1,8 +1,7 @@
 # LyricsDataVis
 
 # Link to App
-
-
+https://kstack.shinyapps.io/LyricsDataVis/
 
  The MusiXMatch App takes data from Musixmatch: the world's
  largest catalog of song lyrics and translations
