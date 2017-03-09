@@ -6,9 +6,17 @@ library(plotly)
 library(dplyr)
 source('apikey.R')
 
-stop.words <- scan("stop_words2.txt", character(), quote = "")
-
 ui <- navbarPage("MusixMatch",
+                 tabPanel("About",
+                          fluidPage(
+                            title = "Discover Lyrics",
+                            h1("Discovering Lyrics Through MusixMatch"),
+                            h3("Our Data"),
+                            p("What is musixmatch. Why we thought it was cool. Citation"),
+                            h3("Our stakeholders"),
+                            p("How this app can be used be public")
+                          )
+                 ),
                  tabPanel("Artist",
                           sidebarLayout(
                             sidebarPanel(
@@ -28,6 +36,7 @@ ui <- navbarPage("MusixMatch",
                             )
                             )
                           )
+ 
                  
                  )
 
@@ -76,6 +85,7 @@ server <- function(input, output) {
     songs.unique <- unique(song.list$track_id)
     # Empty vector for most common word in each song to be appended to
     track.lyrics <- c()
+    stop.words <- scan("stop_words2.txt", character(), quote = "")
     for(track in songs.unique) {
       
       # Get lyrics for a track
