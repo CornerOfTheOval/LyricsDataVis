@@ -17,8 +17,8 @@ ui <- navbarPage("MusixMatch",
                               content of music, whether they are songwriters themselves or recreational 
                               listeners."),
                               p("Although a song wouldn't feel the same without its fundamental
-                              instruments, melody and rhythm, lyrics stick with us too. More than a few words to
-                              sing along to on a drive to work, lyrics can provide insights into the writing patterns and styles of musicians 
+                              instruments, melody and rhythm, lyrics stick with us too. Lyrics are more than a few words to
+                              sing along to on a drive to work. They can provide insights into the writing patterns and styles of musicians 
                               over time."),
                           p("Knowing about patterns in popular lyrics, whether that's the most common words used by your favorite musician or
                               even a fun, recreational activity can provide helpful inspiration to the aspiring songwriter. Especially
