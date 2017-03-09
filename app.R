@@ -150,7 +150,7 @@ server <- function(input, output) {
                          s_track_rating = "desc",
                          f_lyrics_language = "en",
                          apikey = api.key,
-                         page_size=2
+                         page_size=100
                          )
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "track.search"
