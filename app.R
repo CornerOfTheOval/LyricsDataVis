@@ -2,6 +2,7 @@ library(shiny)
 library(httr)
 library(jsonlite)
 library(dplyr)
+library(stringr)
 source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
@@ -33,7 +34,9 @@ ui <- navbarPage("Navbar",
                               sliderInput("year.range", "Year Range:", min = 1955, max = 2017, value = c(1955,2017), step = 1)
                             ),
                             mainPanel(
-                              verbatimTextOutput("year.range.output")
+                              verbatimTextOutput("year.range.output"),
+                              plotOutput("year.word.plot")
+                              
                             )
                           )
                  )
@@ -163,18 +166,39 @@ server <- function(input, output) {
     
     endpoint <- "track.lyrics.get"
     uri <- paste0(base.uri, endpoint)
-    lyric.bodies <- data.frame()
+    lyrics.df <- data.frame()
+    stop.words <- scan("stop_words2.txt", character(), quote = "")
     
-    for(t in tracks$track_id){
-      query.params <- list(track_id = t,#tracks$track_id[1],
+    #for(t in tracks$track_id){
+      query.params <- list(track_id = tracks$track_id[3],#t,
                            apikey = api.key
                           )
       response <- GET(uri, query = query.params)
       body <- content(response, "text")
       parsed.data <- fromJSON(body)
-      new.lyric <- data.frame(t, parsed.data$message$body$lyrics$lyrics_body)
-      lyric.bodies<- rbind(lyric.bodies, new.lyric)
-    }
+      
+      new.lyrics.body <- parsed.data$message$body$lyrics$lyrics_body
+      
+      #stripping garbage off the lyrics body
+      new.lyrics.body <- str_replace_all(new.lyrics.body, "[\n]" , " ")
+      new.lyrics.body <- gsub('This\\sLyrics.*', "", new.lyrics.body)
+      new.lyrics.body <- str_to_lower(new.lyrics.body)
+      
+      new.lyrics.body <- strsplit(new.lyrics.body, " ")
+      #its a list and we need it in a vector 
+      new.lyrics.body <- unlist(new.lyrics.body)
+      #strip insignificant words
+      new.lyrics.body <- new.lyrics.body[!new.lyrics.body %in% stop.words]
+      #make it into a table to count occurrences
+      new.lyrics.count.table <- table(new.lyrics.body)
+      #trimming off the non-premium message garbage
+      new.lyrics.count.table <- new.lyrics.count.table[-(1:3)]
+      print(new.lyrics.count.table)
+      #track id will be replaced with t when the for loop is activated
+      #new.lyrics <- data.frame(tracks$track_id[1], new.lyrics.body, new.lyrics.count)
+      #lyrics.df<- rbind(lyrics.df, new.lyrics)
+    #}
+    hist(lyric.bodies)
     
   })
   
@@ -189,7 +213,10 @@ server <- function(input, output) {
   
   output$year.range.output <- renderText({
     paste(year.range.min(), year.range.max())
-    year.data()
+  })
+  
+  output$year.word.plot <- renderPlot({
+    year.data
   })
   
 }
