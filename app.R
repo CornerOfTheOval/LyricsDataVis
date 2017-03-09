@@ -7,37 +7,43 @@ library(dplyr)
 source('apikey.R')
 
 ui <- navbarPage("MusixMatch",
-                 tabPanel("About",
-                      fluidPage(
-                            img(src = "MusixMatchlogo.jpg", height = 280, width = 500),
-                            title = "Discover Lyrics",
-                            h2("Discovering Lyrics"),
+          tabPanel("About",
+              fluidPage(
+                     img(src = "MusixMatchlogo.jpg", height = 280, width = 500),
+                         title = "Discover Lyrics",
+                         h2("Discovering Lyrics"),
 
-                            p("This app is designed for anyone interested in the lyrical
-                              content of music, whether they are songwriters themselves or recreational 
-                              listeners."),
-                              p("Although a song wouldn't feel the same without its fundamental
-                              instruments, melody and rhythm, lyrics stick with us too. Lyrics are more than a few words to
-                              sing along to on a drive to work. They can provide insights into the writing patterns and styles of musicians 
-                              over time."),
-                          p("Knowing about patterns in popular lyrics, whether that's the most common words used by your favorite musician or
-                              even a fun, recreational activity can provide helpful inspiration to the aspiring songwriter. Especially
-                                individuals interested in the single words themselves, which makes up lyrics"),
-                            h3("Our Data: MusixMatch"),
-                            p("Our data was
-                              aggregated by Musixmatch, the world’s largest lyrics platform. Musixmatch allows users to share,
-                              track, and enjoy lyrics from any track."),
-                            p("The data set includes information on song lyrics
-                              and artists, a particular artist’s discography, songs, and nationality, and the most
-                              popular songs by country, among other more narrowly defined data. We decided to focus on lyrics from", 
-                              em("artists,"), em("time period"), "and", em("popularity")),
-                            br(),
-                            p("Visit", a(href="https://developer.musixmatch.com/", "https://developer.musixmatch.com/"),
-                              "to access the Musixmatch API.")
+                         p("This app is designed for anyone interested in the lyrical
+                           content of music, whether they are songwriters themselves or recreational 
+                           listeners."),
+                        p("Although a song wouldn't feel the same without its fundamental
+                           instruments, melody and rhythm, lyrics stick with us too. Lyrics are more than a few words to
+                           sing along to on a drive to work. They can provide insights into the writing patterns and styles of musicians 
+                           over time."),
+                        p("Knowing about patterns in popular lyrics, whether that's the most common words used by your favorite musician or
+                          even a fun, recreational activity can provide helpful inspiration to the aspiring songwriter. Especially
+                          individuals interested in the single words themselves, which makes up lyrics"),
+                        h3("Using the App"),
+                        p("Use the tabs at the top of the page to navigate through the app. Each page will have separate
+                          widgets that allow you to interact with some aspect of the musixmatch data."),
+                        p("Use the", strong("Artist"), "tab to see the most common lyric word used by musicians."),
+                        p("Use the", strong("Date"), "tab to see the most common lyric word within a date range"),
+                        p("Use the", strong("Ratings"), "tab to see the present highest ranked musician"),
+                        h3("Our Data: MusixMatch"),
+                        p("Our data was
+                          aggregated by Musixmatch, the world’s largest lyrics platform. Musixmatch allows users to share,
+                          track, and enjoy lyrics from any track."),
+                        p("The data set includes information on song lyrics
+                           and artists, a particular artist’s discography, songs, and nationality, and the most
+                          popular songs by country, among other more narrowly defined data. We decided to focus on lyrics from", 
+                        em("artists,"), em("dates"), "and", em("ratings")),
+                        br(),
+                        p("Visit", a(href="https://developer.musixmatch.com/", "https://developer.musixmatch.com/"),
+                          "to access the Musixmatch API.")
 
-                            )
+              )          
                             
-                          ),
+            ),
 
                  tabPanel("Artist",
                           sidebarLayout(
