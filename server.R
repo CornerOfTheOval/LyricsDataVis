@@ -98,7 +98,7 @@ server <- function(input, output) {
     plot <- ggplot(data = artist.data(), mapping = aes(x = track.lyrics, y = Freq)) +
       geom_bar(stat = 'identity') +
       labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$artist, "Top Lyrics"))  
-    plot <- ggplotly(plot)  
+    plot <- ggplotly(plot, tooltip = c("lyric", "Frequency"))  
     return(plot)
   })
   
