@@ -53,9 +53,9 @@ ui <- navbarPage("MusixMatch",
                               textInput("song", label = "Song Input", placeholder = "Enter song"),
                               sliderInput("num.words", label = "Amount of Words", min = 1, max = 10,
                                           step = 1, value = 5),
-                              actionButton("go", "Go")
+                              actionButton("go", "Go")),
 
-                            ),
+
                             # How to Use the Song Panel
                             mainPanel(
                               p("Use the Song tab to search for any song
@@ -90,8 +90,26 @@ ui <- navbarPage("MusixMatch",
                             plotlyOutput("year.plot", width = "100%"),
                             br()
                           )
+                 ),
+                 tabPanel("Ratings",
+                          sidebarLayout(
+                            sidebarPanel(
+                              p("Enter one of the following country 
+                                codes to search for the top 100 artists 
+                                in our database: AU, CA, DE, ES, FI, IT,
+                                PT, GB, GR, NL, PT, or US."),
+                              textInput("country", label = "Country Input", placeholder = "Enter country code")
+                            ),
+                            mainPanel(
+                              tabsetPanel(type = "tabs", 
+                                          tabPanel("Plot", plotOutput("ratings.plot")), 
+                                          tabPanel("Table", tableOutput("table"))
+                              )
+                            )
+                          )
                  )
         )
+
 
 #=============================================================================================================
 
@@ -194,16 +212,6 @@ server <- function(input, output) {
                          apikey = api.key,
                          page_size=100
                          )
-    base.uri <- "http://api.musixmatch.com/ws/1.1/"
-    endpoint <- "track.search"
-    uri <- paste0(base.uri, endpoint)
-    response <- GET(uri, query = query.params) #sending the request
-
-    body <- content(response, "text")
-    parsed.data <- fromJSON(body)
-    tracks <- parsed.data$message$body$track_list
-    tracks <- tracks$track
-    tracks <- select(tracks, track_id, track_name, artist_name)
     
     #switching the get variables for the track.lyrics requests
     endpoint <- "track.lyrics.get"
@@ -215,7 +223,7 @@ server <- function(input, output) {
     for(t in tracks$track_id){
       query.params <- list(track_id = t,
                            apikey = api.key
-                          )
+      )
       response <- GET(uri, query = query.params)
       body <- content(response, "text")
       parsed.data <- fromJSON(body)
@@ -253,16 +261,16 @@ server <- function(input, output) {
                    mapping =  aes(x = reorder(lyrics.words,-Freq),
                                   y = Freq,
                                   text = paste0("Word: \"",lyrics.words,"\" | ","Frequency:",Freq)))+
-            geom_bar(stat = "identity",
-                     position = position_dodge(width=4)#,aes(fill = Freq) COLOR THRAHSED THE TOOLTIP SO IT WAS REMOVED
-                     )+
-            theme(axis.text.x = element_blank())+
-            xlab("Lyric")+
-            ylab("Frequency")+
-            ggtitle("Top Words for Top Songs in Selected Year Range")
+      geom_bar(stat = "identity",
+               position = position_dodge(width=4)#,aes(fill = Freq) COLOR THRAHSED THE TOOLTIP SO IT WAS REMOVED
+      )+
+      theme(axis.text.x = element_blank())+
+      xlab("Lyric")+
+      ylab("Frequency")+
+      ggtitle("Top Words for Top Songs in Selected Year Range")
     
     plot <- ggplotly(plot,tooltip = c("text")) %>% 
-            config(displayModeBar = F)
+      config(displayModeBar = F)
     return(plot)
   })
   
@@ -288,6 +296,48 @@ server <- function(input, output) {
     top.word()
   })
   
+
+  year.data <- reactive({
+    base.uri <- "http://api.musixmatch.com/ws/1.1/"
+    endpoint <- "chart.artists.get" 
+    uri <- paste0(base.uri, endpoint)
+    query.params <- list(country = input$country,
+                         apikey = api.key,
+                         page = 1,
+                         page_size = 100
+    ) 
+    
+    # get data from "chart.artists.get"
+    response <- GET(uri, query = query.params)
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    countryData <- parsed.data$message$body$artist_list$artist
+    artistRating <- select(countryData, artist_name, artist_rating)
+    artistRating <- mutate(artistRating, ranking = 1:100)
+    newNames <- c("Artist", "Rating", "Ranking")
+    colnames(artistRating) <- newNames
+    return(artistRating)
+  })
+  
+  # generate a table of the 100 most popular artists for a country
+  output$table <- renderTable({
+    year.data()
+  })
+  
+  # generate a plot to compare artist popularity (rank) with artist rating 
+  output$ratings.plot <- renderPlot({
+    plotRatings <- ggplot(year.data(), aes(x = Ranking, y = Rating)) +
+      geom_point(span=1) +
+      geom_smooth(method = "lm", formula = y ~ splines::bs(x, 3), se = FALSE) +
+      ggtitle("Comparison of Artist Popularity and Rating") +
+      labs(x = "Artist Ranking in Popularity", y = "Artist Rating")
+    #plotRatings <- ggplot(plotRatings)  
+    return(plotRatings)
+  })
+  
+  
+ 
+ 
 }
 
 shinyApp(ui = ui, server = server)
