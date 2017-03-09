@@ -1,6 +1,14 @@
-library(shiny)
-library(httr)
-library(jsonlite)
+library("shiny")
+library("jsonlite")
+library("httr")
+library("dplyr")
+library("knitr")
+library("ggplot2")
+library("reshape2")
+library("tidyr")
+library("quantmod")
+library("ggvis")
+
 #source('apikey.R')
 ui <- navbarPage("Navbar",
                  tabPanel("Artist",
@@ -8,7 +16,6 @@ ui <- navbarPage("Navbar",
                             sidebarPanel(
                               textInput("artist", label = "Artist Input", value = "Enter artist"),
                               textInput("lyric", label = "Lyric Input", value = "Enter lyric here")
-                              
                             ),
                             mainPanel(
                               #plotOutput("plot")
@@ -25,12 +32,69 @@ ui <- navbarPage("Navbar",
                               "he" 
                             )
                           )
+                 ),
+                 tabPanel("Ratings",
+                          sidebarLayout(
+                            sidebarPanel(
+                              p("Enter one of the following country 
+                                codes to search for the top 100 artists 
+                                in our database: AU, CA, DE, ES, FI, IT,
+                                PT, GB, GR, NL, PT, or US."),
+                              textInput("country", label = "Country Input", placeholder = "Enter country code")
+                            ),
+                            mainPanel(
+                              tabsetPanel(type = "tabs", 
+                                          tabPanel("Plot", plotOutput("ratings.plot")), 
+                                          tabPanel("Table", tableOutput("table"))
+                              )
+                            )
+                          )
                  )
 )
 
-api.key <- "89b7ffa4912ce0420e1611ed804a106b"
-library(dplyr)
+# api.key <- "e4cf9aae1eb28729d17a2f2e0fd0ac3b"
+
 server <- function(input, output) {
+  year.data <- reactive({
+    base.uri <- "http://api.musixmatch.com/ws/1.1/"
+    endpoint <- "chart.artists.get" 
+    uri <- paste0(base.uri, endpoint)
+    query.params <- list(country = input$country,
+                         apikey = "e4cf9aae1eb28729d17a2f2e0fd0ac3b",
+                         page = 1,
+                         page_size = 100
+    ) 
+    
+    # get data from "chart.artists.get"
+    response <- GET(uri, query = query.params)
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    parsed.data <- flatten(parsed.data)
+    countryData <- parsed.data$message$body$artist_list$artist
+    artistRating <- select(countryData, artist_name, artist_rating)
+    artistRating <- mutate(artistRating, ranking = 1:100)
+    newNames <- c("Artist", "Rating", "Ranking")
+    colnames(artistRating) <- newNames
+    View(artistRating)
+  })
+  
+  # generate a table of the 100 most popular artists for a country
+  output$table <- renderTable({
+    artistRating
+  })
+  
+  # generate a plot to compare artist popularity (rank) with artist rating 
+  output$ratings.plot <- renderPlot({
+    plotRatings <- ggplot(artistRating, aes(x = Ranking, y = Rating)) +
+      geom_point(span=1) +
+      geom_smooth(method = "lm", formula = y ~ splines::bs(x, 3), se = FALSE) +
+      ggtitle("Comparison of Artist Popularity and Rating") +
+      labs(x = "Artist Ranking in Popularity", y = "Artist Rating")
+    #plotRatings <- ggplot(plotRatings)  
+    return(plotRatings)
+  })
+  
+  
   artist.data <- reactive({
     q_artist = "Beyonce" 
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
@@ -50,7 +114,7 @@ server <- function(input, output) {
     View(data)
     data.new <- data %>% 
       select(artist_id, artist_name) %>% 
-    #View(data.new)
+    View(data.new)
       filter(row_number() == 1) # just saves exact name, does not include collabs, "feat"
     View(data.new)
     artist_id <- data.new$artist_id #this saves arctic monkeys id
