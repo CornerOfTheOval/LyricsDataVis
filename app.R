@@ -28,7 +28,7 @@ ui <- navbarPage("MusixMatch",
                           widgets that allow you to interact with some aspect of the musixmatch data."),
                         p("Use the", strong("Artist"), "tab to see the most common lyric word used by musicians."),
                         p("Use the", strong("Date"), "tab to see the most common lyric word within a date range"),
-                        p("Use the", strong("Ratings"), "tab to see the present highest ranked musician"),
+                        p("Use the", strong("Ratings"), "tab to see the present highest ranked musicians"),
                         h3("Our Data: MusixMatch"),
                         p("Our data was
                           aggregated by Musixmatch, the world’s largest lyrics platform. Musixmatch allows users to share,
@@ -40,7 +40,6 @@ ui <- navbarPage("MusixMatch",
                         br(),
                         p("Visit", a(href="https://developer.musixmatch.com/", "https://developer.musixmatch.com/"),
                           "to access the Musixmatch API.")
-
               )          
                             
             ),
@@ -64,7 +63,6 @@ ui <- navbarPage("MusixMatch",
                             )
                             )
                           )
-                 
                  
                  )
 
