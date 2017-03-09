@@ -8,22 +8,44 @@ source('apikey.R')
 
 ui <- navbarPage("MusixMatch",
                  tabPanel("About",
-                          fluidPage(
+                      fluidPage(
+                            img(src = "MusixMatchlogo.jpg", height = 280, width = 500),
                             title = "Discover Lyrics",
-                            h1("Discovering Lyrics Through MusixMatch"),
-                            h3("Our Data"),
-                            p("What is musixmatch. Why we thought it was cool. Citation"),
-                            h3("Our stakeholders"),
-                            p("How this app can be used be public")
-                          )
-                 ),
+                            h2("Discovering Lyrics"),
+
+                            p("This app is designed for anyone interested in the lyrical
+                              content of music, whether they are songwriters themselves or recreational 
+                              listeners."),
+                              p("Although a song wouldn't feel the same without its fundamental
+                              instruments, melody and rhythm, lyrics stick with us too. More than a few words to
+                              sing along to on a drive to work, lyrics can provide insights into the writing patterns and styles of musicians 
+                              over time."),
+                          p("Knowing about patterns in popular lyrics, whether that's the most common words used by your favorite musician or
+                              even a fun, recreational activity can provide helpful inspiration to the aspiring songwriter. Especially
+                                individuals interested in the single words themselves, which makes up lyrics"),
+                            h3("Our Data: MusixMatch"),
+                            p("Our data was
+                              aggregated by Musixmatch, the world’s largest lyrics platform. Musixmatch allows users to share,
+                              track, and enjoy lyrics from any track."),
+                            p("The data set includes information on song lyrics
+                              and artists, a particular artist’s discography, songs, and nationality, and the most
+                              popular songs by country, among other more narrowly defined data. We decided to focus on lyrics from", 
+                              em("artists,"), em("time period"), "and", em("popularity")),
+                            br(),
+                            p("Visit", a(href="https://developer.musixmatch.com/", "https://developer.musixmatch.com/"),
+                              "to access the Musixmatch API.")
+
+                            )
+                            
+                          ),
+
                  tabPanel("Artist",
                           sidebarLayout(
                             sidebarPanel(
                               textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
                               sliderInput("num.words", label = "Amount of Words", min = 1, max = 20,
                                           step = 1, value = 10)
-
+                              
                             ),
                             mainPanel(
                               p("Use the Artist tab to search for any artist 
@@ -36,9 +58,10 @@ ui <- navbarPage("MusixMatch",
                             )
                             )
                           )
- 
+                 
                  
                  )
+
 
 server <- function(input, output) {
   
@@ -58,7 +81,7 @@ server <- function(input, output) {
       select(artist_name)
     # Stores ids as vector to be passed into a loop
     artist.names <- as.vector(artist.names$artist_name)
-
+    
     # Empty data frame to add all unique album ids for the artist
     song.list <- c()
     for(name in artist.names) {
@@ -109,7 +132,7 @@ server <- function(input, output) {
         lyric.split <- lyric.split[!lyric.split %in% stop.words]
         lyric.split <- tolower(lyric.split)
         # table sorts each word into a box with its matching word, sorts in ascending order
-
+        
         # Add track ids to empty vector
         track.lyrics <- append(track.lyrics, lyric.split)
       }
