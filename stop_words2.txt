@@ -1,4 +1,8 @@
 a
+<<<<<<< HEAD
+=======
+And
+>>>>>>> 977d9b05d2490f7dc5e92bd3e03166a23e016372
 about
 above
 after
@@ -171,3 +175,11 @@ your
 yours
 yourself
 yourselves
+<<<<<<< HEAD
+=======
+*******
+I
+me
+you
+myself
+>>>>>>> 977d9b05d2490f7dc5e92bd3e03166a23e016372
