@@ -15,7 +15,7 @@ server <- function(input, output) {
     query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
-    body <- content(response, "text")
+    body <- httr::content(response, "text")
     parsed.data <- fromJSON(body)
     # Flattens parsed data list to get data frame of interest
     artist.search <- parsed.data$message$body$artist_list$artist
@@ -34,7 +34,7 @@ server <- function(input, output) {
       query.params.song <- list(q_artist= name, apikey = api.key, 
                                 page_size = 100, f_lyrics_language = "en") 
       song.response <- GET(song.uri, query = query.params.song)
-      song.body <- content(song.response, "text")
+      song.body <- httr::content(song.response, "text")
       song.parsed <- fromJSON(song.body)
       song.data <- song.parsed$message$body$track_list$track 
       if(!is.null(song.data)){
@@ -48,12 +48,13 @@ server <- function(input, output) {
     
     # Extract only unique track_ids
     songs.unique <- unique(song.list$track_id)
-    
     # Empty vector for most common word in each song to be appended to
     track.lyrics <- c()
     
     # common stop words to exclude from analysis
-    remove <- c("the", "is", "a", "it", "I", "to", "of", "that", "then", "*******", "...", "and", "in", "on", "And")
+    remove <- c("the", "is", "a", "it", "I", "to",
+                "of", "that", "then", "*******", 
+                "...", "and", "in", "on", "And", "for", "an", "are", "as", "at", "be", "but")
 
     for(track in songs.unique) {
       
@@ -64,18 +65,18 @@ server <- function(input, output) {
       
       # Only proceed through for loop if the page exists
       if(response$status_code == 200) {
-        body <- content(response, "text") 
+        body <- httr::content(response, "text") 
         lyric.parsed <- fromJSON(body)
         lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
-        
+        lyric.body
         # gets rid of everything after "This Lyrics" commerical use warning
         lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
+        
         # splits entire lyric into individual words
         lyric.split <- strsplit(paste(lyric.body, collapse = " "), "[[:space:]]+")[[1]]
-      
         # removes common stop words
         lyric.split <- lyric.split[!lyric.split %in% remove]
-        
+        lyric.split
         # table sorts each word into a box with its matching word, sorts in ascending order
         # select the most frequent word 
 
@@ -92,10 +93,10 @@ server <- function(input, output) {
   })
   # color based on if word is more than 3 letters
   # hover show both values
-  output$artist.plot <- renderPlot({
-    plot <- ggplot(data = artist.data(), mapping = aes(x = reorder(track.lyrics, -Freq), y = Freq)) +
+ #reorder(track.lyrics, -Freq)
+  output$artist.plot <- renderPlotly({
+    plot <- ggplot(data = artist.data(), mapping = aes(x = track.lyrics, y = Freq)) +
       geom_bar(stat = 'identity') +
-      geom_point() +
       labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$artist, "Top Lyrics"))  
     plot <- ggplotly(plot)  
     return(plot)
