@@ -1,4 +1,5 @@
 a
+And
 about
 above
 after
@@ -171,3 +172,8 @@ your
 yours
 yourself
 yourselves
+*******
+I
+me
+you
+myself
