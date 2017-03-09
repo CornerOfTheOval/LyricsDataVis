@@ -14,8 +14,7 @@ ui <- navbarPage("MusixMatch",
                             sidebarPanel(
                               textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
                               sliderInput("num.words", label = "Amount of Words", min = 1, max = 20,
-                                          step = 1, value = 10),
-                              textInput("song.title", label = "Song Title", placeholder = "Enter song")
+                                          step = 1, value = 10)
 
                             ),
                             mainPanel(
@@ -50,13 +49,10 @@ server <- function(input, output) {
       select(artist_name)
     # Stores ids as vector to be passed into a loop
     artist.names <- as.vector(artist.names$artist_name)
-    return(artist.names)
-  })
-  
-  artist.songs <- reactive ({
+
     # Empty data frame to add all unique album ids for the artist
     song.list <- c()
-    for(name in artist.data()) {
+    for(name in artist.names) {
       
       # Gets all albums associated with the artist id
       song.uri <- paste0(base.uri, "track.search")
@@ -73,7 +69,7 @@ server <- function(input, output) {
         no.dupes <- song.data[!duplicated(song.data$track_name),]
         # all songs for all artists
         song.list <- c(song.list, no.dupes)
-       } 
+      } 
     }
     
     # Extract only unique track_ids
@@ -103,10 +99,8 @@ server <- function(input, output) {
         lyric.split <- lyric.split[!lyric.split %in% stop.words]
         lyric.split <- tolower(lyric.split)
         # table sorts each word into a box with its matching word, sorts in ascending order
-        # select the most frequent word 
 
         # Add track ids to empty vector
-        
         track.lyrics <- append(track.lyrics, lyric.split)
       }
     }
@@ -120,19 +114,17 @@ server <- function(input, output) {
   # hover show both values
   output$artist.plot <- renderPlotly({
     plot <- ggplot(data = artist.data(), 
-                   mapping = aes(x = reorder(track.lyrics, -Freq),
-                                                       y = Freq, 
-                                                       fill = Freq,
-                                                       text = c(paste("Word:", x), paste("Frequency:", y)))) +
-      geom_bar(stat = 'identity') +
-      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$artist, "Top Lyrics"))  
-    plot <- ggplotly(plot, tooltip = c("text")) %>% 
-      config(displayModeBar = FALSE)
+                   mapping = aes(x = reorder(track.lyrics, -Freq),y = Freq, 
+                                 text = paste("Word: \"", track.lyrics,"\" |", "Frequency:", Freq))) +
+      geom_bar(stat = 'identity', aes(fill = Freq), color = "gray90") +
+      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(toupper(input$artist), "Top Lyrics"))  
+    plot <- ggplotly(plot, tooltip = "text") %>% 
+      config(displayModeBar = F)
     
     return(plot)
   })
   
-
+  
 }
 
 shinyApp(ui = ui, server = server)
