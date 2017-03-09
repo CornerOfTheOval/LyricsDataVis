@@ -6,6 +6,7 @@ library(plotly)
 library(dplyr)
 source('apikey.R')
 ui <- navbarPage("MusixMatch",
+                 # Describes data set, stakeholders, data origin
                  tabPanel("About",
                           fluidPage(
                             img(src = "MusixMatchlogo.jpg", height = 280, width = 500),
@@ -43,6 +44,7 @@ ui <- navbarPage("MusixMatch",
                           
                             ),
                  
+                 # Song Panel
                  tabPanel("Song",
                           sidebarLayout(
                             sidebarPanel(
@@ -53,6 +55,7 @@ ui <- navbarPage("MusixMatch",
                               actionButton("go", "Go")
                               
                             ),
+                            # How to Use the Song Panel
                             mainPanel(
                               p("Use the Song tab to search for any song
                                 in our database. Simply:",
@@ -62,7 +65,9 @@ ui <- navbarPage("MusixMatch",
                                 tags$li("Then type the song
                                          title in the", strong("Song Input"), "section."),
                                 tags$li("Choose the amount of words you want using the", 
-                                        strong("Amount of Words"),"slider input.")
+                                        strong("Amount of Words"),"slider input."),
+                                tags$li("Click the", strong("Go"), "button to get your chart"),
+                                tags$li("Hover over the bars to get the word and its frequency in the song.")
                                 )
                               ),  
                               br(),
@@ -74,7 +79,8 @@ ui <- navbarPage("MusixMatch",
 
 
 server <- function(input, output) {
-
+  
+  # Uses song, artist and slider input to find lyrics in song
   artist.data <- reactive( {
     # Artist Search
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
@@ -88,16 +94,17 @@ server <- function(input, output) {
     song.body <- httr::content(song.response, "text")
     song.parsed <- fromJSON(song.body)
     song.data <- song.parsed$message$body$track_list$track 
+    
+    # selects first artist in row of artists that match the input
     song.data <- song.data %>% 
       select(track_name, track_id) %>% 
       filter(row_number() == 1)
-    # all songs for all artists
     # Extract only unique track_ids
     songs.unique <- unique(song.data$track_id)
-    # Empty vector for most common word in each song to be appended to
+    # Vector of commonstop words to ignore in analysis
     stop.words <- scan("stop_words2.txt", character(), quote = "")
     
-    # Get lyrics for a track
+    # Get lyrics for the song
     lyric.uri <- paste0(base.uri, "track.lyrics.get")
     lyric.query.params <- list(apikey = api.key, track_id = songs.unique) #track
     response <- GET(lyric.uri, query = lyric.query.params)
@@ -107,20 +114,26 @@ server <- function(input, output) {
       lyric.parsed <- fromJSON(body)
       lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
       
-      # gets rid of everything after "This Lyrics" commerical use warning
+      # Gets rid of everything after "This Lyrics" commerical use warning
       lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
+      
+      # Gets rid of unnessecary punctuation
       lyric.body <- gsub("[,?!.]", " ", lyric.body)
       
-      # splits entire lyric into individual words
+      # Splits entire lyric into individual words
       lyric.split <- strsplit(paste(lyric.body, collapse = " "), "[[:space:]]+")[[1]]
       
-      # removes common stop words
+      # Removes common stop words
       lyric.split <- lyric.split[!lyric.split %in% stop.words]
-      lyric.split <- tolower(lyric.split)
-      # table sorts each word into a box with its matching word, sorts in ascending order
       
-      # Add track ids to empty vector
+      # Changes all words to lower case
+      lyric.split <- tolower(lyric.split)
+
     }
+    
+    # table sorts each word into a box with its matching word, 
+    # sorts in descending order to get most frequent on top
+    # amount selected is based on slider input
     word.df <- data.frame(table(lyric.split)) %>% 
       arrange(desc(Freq)) %>% 
       head(input$num.words)
@@ -130,15 +143,19 @@ server <- function(input, output) {
   # color based on if word is more than 3 letters
   # hover show both values
   
+  # only outputs after "Go" input button is clicked
   output$artist.plot <- renderPlotly({
     input$go
+    
+    # Overrides plotly's default hover tooltip, add own labels
     plot <- isolate(ggplot(data = artist.data(), mapping = aes(x = reorder(lyric.split, -Freq), y = Freq, 
                                                        text = paste("Word: \"", lyric.split,"\" |", "Frequency:", Freq))) +
       geom_bar(stat = 'identity', aes(), fill = "skyblue2") +
-      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$song, "Top Lyrics"))  )
+      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$song, "Top Lyrics")))
+    
+    # hide plotly default Mode Bar
     plot <- ggplotly(plot, tooltip = "text") %>% 
       config(displayModeBar = F)
-    
     return(plot)
     
   })
