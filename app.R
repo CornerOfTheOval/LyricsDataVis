@@ -4,28 +4,28 @@ library(jsonlite)
 library(ggplot2)
 library(plotly)
 library(dplyr)
-#source('apikey.R')
-api.key <- "3a6e5e54fe8f3c50130c1763052cb5de"
+source('apikey.R')
 ui <- navbarPage("MusixMatch",
                  tabPanel("About",
                           fluidPage(
+                            img(src = "MusixMatchlogo.jpg", height = 280, width = 500),
                             title = "Discover Lyrics",
                             h2("Discovering Lyrics"),
-                            
                             p("This app is designed for anyone interested in the lyrical
                               content of music, whether they are songwriters themselves or recreational 
                               listeners."),
                             p("Although a song wouldn't feel the same without its fundamental
-                              instruments, melody and rhythm, lyrics stick with us too. Lyrics are more than a few words to
+                              instruments, melody, and rhythm, lyrics stick with us too. Lyrics are more than a few words to
                               sing along to on a drive to work. They can provide insights into the writing patterns and styles of musicians 
                               over time."),
-                            p("Knowing about patterns in popular lyrics, whether that's the most common words used by your favorite musician or
-                              even a fun, recreational activity can provide helpful inspiration to the aspiring songwriter. Especially
-                              individuals interested in the single words themselves, which makes up lyrics"),
+                            p("Discovering the lyrical patterns in popular songs
+                              can provide helpful inspiration to the aspiring songwriter. Especially
+                              those who are interested in being successful in the music industry. It's
+                              also just a fun way to learn extra details about your favorite songs and music eras."),
                             h3("Using the App"),
                             p("Use the tabs at the top of the page to navigate through the app. Each page will have separate
                               widgets that allow you to interact with some aspect of the musixmatch data."),
-                            p("Use the", strong("Artist"), "tab to see the most common lyric word used by musicians."),
+                            p("Use the", strong("Song"), "tab to see the most common lyric word used in a specific song."),
                             p("Use the", strong("Date"), "tab to see the most common lyric word within a date range"),
                             p("Use the", strong("Ratings"), "tab to see the present highest ranked musicians"),
                             h3("Our Data: MusixMatch"),
@@ -43,33 +43,38 @@ ui <- navbarPage("MusixMatch",
                           
                             ),
                  
-                 tabPanel("Artist",
+                 tabPanel("Song",
                           sidebarLayout(
                             sidebarPanel(
                               textInput("artist", label = "Artist Input", placeholder = "Enter artist"),
                               textInput("song", label = "Song Input", placeholder = "Enter song"),
                               sliderInput("num.words", label = "Amount of Words", min = 1, max = 10,
                                           step = 1, value = 5),
-                              actionButton("go", "Go!")
+                              actionButton("go", "Go")
                               
                             ),
                             mainPanel(
-                              p("Use the Artist tab to search for any artist 
-                                in our database. Simply type in an artist name
-                                in the", strong("Artist Input"), "section. Then
-                                choose the amount of words you want using the", strong("Amount of Words"),
-                                "slider input."),
+                              p("Use the Song tab to search for any song
+                                in our database. Simply:",
+                                tags$ul(
+                                tags$li("Type in an artist name
+                                        in the", strong("Artist Input"), "section."),
+                                tags$li("Then type the song
+                                         title in the", strong("Song Input"), "section."),
+                                tags$li("Choose the amount of words you want using the", 
+                                        strong("Amount of Words"),"slider input.")
+                                )
+                              ),  
                               br(),
                               plotlyOutput("artist.plot")
                             )
                             )
                           )
-                 
                  )
 
 
 server <- function(input, output) {
-  
+
   artist.data <- reactive( {
     # Artist Search
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
@@ -124,6 +129,7 @@ server <- function(input, output) {
   })
   # color based on if word is more than 3 letters
   # hover show both values
+  
   output$artist.plot <- renderPlotly({
     input$go
     plot <- isolate(ggplot(data = artist.data(), mapping = aes(x = reorder(lyric.split, -Freq), y = Freq, 
