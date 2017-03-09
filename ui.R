@@ -16,10 +16,12 @@ ui <- navbarPage("Navbar",
                  tabPanel("Genre",
                           sidebarLayout(
                             sidebarPanel(
-                              "he"
+                              selectInput("genre", label = "Genre:",
+                                          choices = c("Rock", "Pop", "Rap", "Jazz", "Country", "Hip Hop")
+                              )
                             ),
-                            mainPanel(
-                              "he" 
+                            mainPanel()
+                              verbatimTextOutput("genre.output") 
                             )
                           )
                  )

@@ -99,4 +99,65 @@ server <- function(input, output) {
     input$artist
   })
   
+  #############################################genre#########################################################
+  
+  genre.data <- reactive({
+    query.params <- list(f_music_genre_id="14", f_lyrics_language = "en",
+                         s_track_rating = "desc",apikey = api.key, page_size=100)
+    
+    base.uri <- "http://api.musixmatch.com/ws/1.1/"
+    endpoint <- "track.search"
+    uri <- paste0(base.uri, endpoint)
+    response <- GET(uri, query = query.params) #sending the request
+    
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    tracks <- parsed.data$message$body$track_list
+    tracks <- tracks$track
+    print(colnames(tracks))
+    tracks <- select(tracks, track_id, track_name, artist_name)
+    #View(tracks)
+    
+    endpoint <- "track.lyrics.get"
+    uri <- paste0(base.uri, endpoint)
+    lyrics.df <- data.frame()
+    stop.words <- scan("stop_words2.txt", character(), quote = "")
+    
+    #for(t in tracks$track_id){
+    query.params <- list(track_id = tracks$track_id[3],#t,
+                         apikey = api.key
+    )
+    response <- GET(uri, query = query.params)
+    body <- content(response, "text")
+    parsed.data <- fromJSON(body)
+    
+    new.lyrics.body <- parsed.data$message$body$lyrics$lyrics_body
+    
+    #stripping garbage off the lyrics body
+    new.lyrics.body <- str_replace_all(new.lyrics.body, "[\n]" , " ")
+    new.lyrics.body <- gsub('This\\sLyrics.*', "", new.lyrics.body)
+    new.lyrics.body <- str_to_lower(new.lyrics.body)
+    
+    new.lyrics.body <- strsplit(new.lyrics.body, " ")
+    #its a list and we need it in a vector 
+    new.lyrics.body <- unlist(new.lyrics.body)
+    #strip insignificant words
+    new.lyrics.body <- new.lyrics.body[!new.lyrics.body %in% stop.words]
+    #make it into a table to count occurrences
+    new.lyrics.count.table <- table(new.lyrics.body)
+    #trimming off the non-premium message garbage
+    new.lyrics.count.table <- new.lyrics.count.table[-(1:3)]
+    print(new.lyrics.count.table)
+    #track id will be replaced with t when the for loop is activated
+    #new.lyrics <- data.frame(tracks$track_id[1], new.lyrics.body, new.lyrics.count)
+    #lyrics.df<- rbind(lyrics.df, new.lyrics)
+    #}
+    hist(lyric.bodies)
+    
+  })
+  
+  output$genre.output <- renderText({
+    genre.data()
+  })
+  
 }
