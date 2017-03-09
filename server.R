@@ -96,9 +96,9 @@ server <- function(input, output) {
  #reorder(track.lyrics, -Freq)
   output$artist.plot <- renderPlotly({
     plot <- ggplot(data = artist.data(), mapping = aes(x = track.lyrics, y = Freq)) +
-      geom_bar(stat = 'identity') +
+      geom_bar(stat = 'identity', fill = 'skyblue2') +
       labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$artist, "Top Lyrics"))  
-    plot <- ggplotly(plot, tooltip = c("lyric", "Frequency"))  
+    plot <- ggplotly(plot)  
     return(plot)
   })
   
