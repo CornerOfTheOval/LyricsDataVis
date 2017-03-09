@@ -156,7 +156,7 @@ server <- function(input, output) {
       lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
       
       # Gets rid of unnessecary punctuation
-      lyric.body <- gsub("[,?!.]", " ", lyric.body)
+      lyric.body <- gsub("[,?!.()]", " ", lyric.body)
       
       # Splits entire lyric into individual words
       lyric.split <- strsplit(paste(lyric.body, collapse = " "), "[[:space:]]+")[[1]]
