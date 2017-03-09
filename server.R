@@ -1,8 +1,6 @@
 library(shiny)
 library(httr)
 library(jsonlite)
-#install.packages('tm')
-library(tm)
 source('apikey.R')
 library(ggplot2)
 
@@ -12,7 +10,7 @@ server <- function(input, output) {
     # Artist Search
     base.uri <- "http://api.musixmatch.com/ws/1.1/"
     endpoint <- "artist.search" 
-    query.params <- list(q_artist = "arctic monkeys", apikey = api.key, page_size = 100) 
+    query.params <- list(q_artist = input$artist, apikey = api.key, page_size = 100) 
     uri <- paste0(base.uri, endpoint)
     response <- GET(uri, query = query.params)
     body <- httr::content(response, "text")
@@ -24,15 +22,14 @@ server <- function(input, output) {
       select(artist_name)
     # Stores ids as vector to be passed into a loop
     artist.names <- as.vector(artist.names$artist_name)
-    artist.names
-    
+
     # Empty data frame to add all unique album ids for the artist
     song.list <- c()
     for(name in artist.names) {
       
       # Gets all albums associated with the artist id
       song.uri <- paste0(base.uri, "track.search")
-      query.params.song <- list(q_artist= name, apikey = api.key, page_size = 100) 
+      query.params.song <- list(q_artist= name, apikey = api.key, page_size = 100, f_lyrics_language = "en") 
       song.response <- GET(song.uri, query = query.params.song)
       song.body <- httr::content(song.response, "text")
       song.parsed <- fromJSON(song.body)
@@ -51,14 +48,13 @@ server <- function(input, output) {
 
     # Extract only unique track_ids
     songs.unique <- unique(song.list$track_id)
- 
+    
     # Empty vector for most common word in each song to be appended to
     track.lyrics <- c()
     
     # common stop words to exclude from analysis
-    remove <- c("the", "is", "a", "it", "I", "to", "of", "that", "then")
-    songs.unique
-    
+    remove <- c("the", "is", "a", "it", "I", "to", "of", "that", "then", "*******", "...", "and", "in", "on", "And")
+
     for(track in songs.unique) {
       
       # Get lyrics for a track
@@ -71,10 +67,8 @@ server <- function(input, output) {
         body <- httr::content(response, "text") 
         lyric.parsed <- fromJSON(body)
         lyric.body <- lyric.parsed$message$body$lyrics$lyrics_body
-   
         # gets rid of everything after "This Lyrics" commerical use warning
         lyric.body <- gsub('This\\sLyrics.*', "", lyric.body) 
-      
         # splits entire lyric into individual words
         # http://stackoverflow.com/questions/26159754/using-r-to-find-top-ten-words-in-a-text
         lyric.split <- strsplit(paste(lyric.body, collapse = " "), "[[:space:]]+")[[1]]
@@ -84,26 +78,28 @@ server <- function(input, output) {
         
         # table sorts each word into a box with its matching word, sorts in ascending order
         # select the most frequent word 
-        most.freq <- tail(sort(table(lyric.split)), 1) #turn 1 into input for each song
+        #most.freq <- tail(sort(table(lyric.split)), 1) #turn 1 into input for each song
         
         # current --> stores one word in track.lyrics, should i just store entire lyrics
         # Add track ids to empty vector
-        track.lyrics <- append(track.lyrics, most.freq)
+        #track.lyrics <- append(track.lyrics, most.freq)
+        track.lyrics <- append(track.lyrics, lyric.split)
       }
     }
-    track.lyrics
-    # Saves most common lyric per song as a data frame
-    lyrics.df <- as.data.frame(as.table(track.lyrics)) %>% 
+    word.df <- data.frame(table(track.lyrics)) %>% 
+      filter(!track.lyrics == "...") %>% 
       arrange(desc(Freq)) %>% 
-      head(10)
+      head(input$num.words)
+
   
-    return(grouped.lyrics)
+    return(word.df)
     
   })
   
   output$artist.plot <- renderPlot({
-    plot <- ggplot(data = artist.data(), aes(x = Var1, y = Freq)) +
-      geom_point(size = 5) 
+    plot <- ggplot(data = artist.data(), mapping = aes(x = reorder(track.lyrics, -Freq), y = Freq)) +
+      geom_bar(stat = 'identity') +
+      labs(x = "Top words", y = "Frequency", title = paste(input$artist, "Top Lyrics")) 
     return(plot)
   })
   
