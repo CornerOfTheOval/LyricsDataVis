@@ -4,8 +4,8 @@ library(jsonlite)
 library(ggplot2)
 library(plotly)
 library(dplyr)
-source('apikey.R')
-
+#source('apikey.R')
+api.key <- "3a6e5e54fe8f3c50130c1763052cb5de"
 ui <- navbarPage("MusixMatch",
           tabPanel("About",
               fluidPage(
@@ -150,11 +150,10 @@ server <- function(input, output) {
   # color based on if word is more than 3 letters
   # hover show both values
   output$artist.plot <- renderPlotly({
-    plot <- ggplot(data = artist.data(), 
-                   mapping = aes(x = reorder(track.lyrics, -Freq),y = Freq, 
-                                 text = paste("Word: \"", track.lyrics,"\" |", "Frequency:", Freq))) +
-      geom_bar(stat = 'identity', aes(fill = Freq), color = "gray90") +
-      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(toupper(input$artist), "Top Lyrics"))  
+    plot <- ggplot(data = artist.data(), mapping = aes(x = reorder(track.lyrics, -Freq), y = Freq, 
+                   text = paste("Word: \"", track.lyrics,"\" |", "Frequency:", Freq))) +
+      geom_bar(stat = 'identity', aes(), fill = "skyblue2") +
+      labs(x = paste("Top", input$num.words, "words"), y = "Frequency", title = paste(input$artist, "Top Lyrics"))  
     plot <- ggplotly(plot, tooltip = "text") %>% 
       config(displayModeBar = F)
     
